@@ -20,6 +20,10 @@ struct thr_args
     pthread_t trd;
 };
 
+// Person & Coin Locks
+int g_counter, c_counter;
+pthread_mutex_t g_lock, c_lock;
+
 void cprinter(char *s, char *t)
 {
     printf("coins: ");
@@ -47,21 +51,33 @@ void toss(char *s, pthread_t trd)
 {
     for(int i=0; i<CCOUNT; i++)
     {
-        if(s == STRATEGY[1])
-            pthread_join(trd, NULL);
+        pthread_mutex_lock(&c_lock);
+        c_counter += 1;
         int rnd_num = rand() % 100 + 1;
         if(rnd_num <= PROBABILITY)
             coins[i] = CSIDES[0];
         else
             coins[i] = CSIDES[1];
+        pthread_mutex_unlock(&c_lock);
     }
 }
 
 void operation(void *thr_args)
 {
     struct thr_args *args = thr_args;
-    for(int j=0; j<tries; j++)
-        toss(args -> strategy, args -> trd);
+    if(args -> strategy == STRATEGY[0])
+    {
+        pthread_mutex_lock(&g_lock);
+        g_counter += 1;
+        for(int j=0; j<tries; j++)
+            toss(args -> strategy, args -> trd);
+        pthread_mutex_unlock(&g_lock);
+    }
+    else
+    {
+        for(int j=0; j<tries; j++)
+            toss(args -> strategy, args -> trd);
+    }
 }
 
 int main(int argc, char * argv[])
@@ -80,6 +96,12 @@ int main(int argc, char * argv[])
     // Strategy #1 - Global Lock
     pthread_t thr_g[persons];
     initialize(STRATEGY[0]);
+
+    if (pthread_mutex_init(&g_lock, NULL) != 0) {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
+
     clock_t begin_g = clock();
 
     for(int i=0; i<persons; i++)
@@ -88,7 +110,6 @@ int main(int argc, char * argv[])
         args_g.strategy = STRATEGY[0];
         pthread_create(&thr_g[i], NULL, operation, (void *)&args_g);
         args_g.trd = thr_g[i];
-        pthread_join(thr_g[i], NULL);
     }
 
     cprinter(STRATEGY[0], "end");
