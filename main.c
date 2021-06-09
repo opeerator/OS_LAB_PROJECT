@@ -51,14 +51,25 @@ void toss(char *s, pthread_t trd)
 {
     for(int i=0; i<CCOUNT; i++)
     {
-        pthread_mutex_lock(&c_lock);
-        c_counter += 1;
-        int rnd_num = rand() % 100 + 1;
-        if(rnd_num <= PROBABILITY)
-            coins[i] = CSIDES[0];
+        if(s == STRATEGY[1])
+        {
+            pthread_mutex_lock(&c_lock);
+            c_counter += 1;
+            int rnd_num = rand() % 100 + 1;
+            if(rnd_num <= PROBABILITY)
+                coins[i] = CSIDES[0];
+            else
+                coins[i] = CSIDES[1];
+            pthread_mutex_unlock(&c_lock);
+        }
         else
-            coins[i] = CSIDES[1];
-        pthread_mutex_unlock(&c_lock);
+        {
+            int rnd_num = rand() % 100 + 1;
+            if(rnd_num <= PROBABILITY)
+                coins[i] = CSIDES[0];
+            else
+                coins[i] = CSIDES[1];
+        }
     }
 }
 
