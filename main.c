@@ -138,5 +138,8 @@ int main(int argc, char * argv[])
     double time_spent_c = ((double)(end_c - begin_c) / CLOCKS_PER_SEC) * 1000;
     tprinter(persons, tries, time_spent_c);
 
+    pthread_mutex_destroy(&g_lock);
+    pthread_mutex_destroy(&c_lock);
+
     return 0;
 }
