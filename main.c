@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <time.h>
 
 // Constants
 const int CCOUNT = 20; // Number of coins
@@ -21,7 +22,12 @@ void cprinter(char *s, char *t)
     printf(" (%s - %s)\n", t, s);
 }
 
-void randomize(char *s)
+void tprinter(int nth, int nfl, double t)
+{
+    printf("%d threads x %d flips: %f\n", nth, nfl, t);
+}
+
+void initialize(char *s)
 {
     for(int i=0; i<CCOUNT; i++)
     {
@@ -41,12 +47,20 @@ void toss(char *s)
         else
             coins[i] = CSIDES[1];
     }
-    cprinter(s, "end");
+}
+
+void operation(char *s)
+{
+    for(int j=0; j<tries; j++)
+    {
+        toss(STRATEGY[0]);
+    }
 }
 
 int main(int argc, char * argv[])
 {    
     srand(time(NULL));
+
     // Command line input checks
     if(argc==2)
         persons = atoi(argv[1]);
@@ -57,8 +71,23 @@ int main(int argc, char * argv[])
     }
 
     // Strategy #1 - Global Lock
-    randomize(STRATEGY[0]);
-    toss(STRATEGY[0]);
+    initialize(STRATEGY[0]);
+    clock_t begin = clock();
+
+    for(int i=0; i<persons; i++)
+    {
+        operation("g");
+    }
+
+    cprinter(STRATEGY[0], "end");
+    clock_t end = clock();
+    double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC) * 1000;
+    tprinter(persons, tries, time_spent);
+
+    putchar('\n');
+    fflush(stdout);
+
+    // Strategy #2 - Global Lock
 
     return 0;
 }
