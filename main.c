@@ -6,13 +6,19 @@
 #include <time.h>
 
 // Constants
-const int CCOUNT = 20; // Number of coins
-const double PROBABILITY = 50; // Probability
+#define CCOUNT 20 // Number of coins
+#define PROBABILITY 50 // Probability
 const char *STRATEGY[2] = {"global lock", "coin lock"}; // Stategies
-char *CSIDES[2] = {"X", "0"}; // Coin Sides
 
+char *CSIDES[2] = {"X", "0"}; // Coin Sides
 int persons = 100, tries = 10000;
 char *coins[CCOUNT];
+
+struct thr_args 
+{
+    char * strategy;
+    pthread_t trd;
+};
 
 void cprinter(char *s, char *t)
 {
@@ -24,7 +30,7 @@ void cprinter(char *s, char *t)
 
 void tprinter(int nth, int nfl, double t)
 {
-    printf("%d threads x %d flips: %f\n", nth, nfl, t);
+    printf("%d threads x %d flips: %f ms\n", nth, nfl, t);
 }
 
 void initialize(char *s)
@@ -37,10 +43,12 @@ void initialize(char *s)
     cprinter(s, "start");
 }
 
-void toss(char *s)
+void toss(char *s, pthread_t trd)
 {
     for(int i=0; i<CCOUNT; i++)
     {
+        if(s == STRATEGY[1])
+            pthread_join(trd, NULL);
         int rnd_num = rand() % 100 + 1;
         if(rnd_num <= PROBABILITY)
             coins[i] = CSIDES[0];
@@ -49,12 +57,11 @@ void toss(char *s)
     }
 }
 
-void operation(char *s)
+void operation(void *thr_args)
 {
+    struct thr_args *args = thr_args;
     for(int j=0; j<tries; j++)
-    {
-        toss(STRATEGY[0]);
-    }
+        toss(args -> strategy, args -> trd);
 }
 
 int main(int argc, char * argv[])
@@ -71,23 +78,44 @@ int main(int argc, char * argv[])
     }
 
     // Strategy #1 - Global Lock
+    pthread_t thr_g[persons];
     initialize(STRATEGY[0]);
-    clock_t begin = clock();
+    clock_t begin_g = clock();
 
     for(int i=0; i<persons; i++)
     {
-        operation("g");
+        struct thr_args args_g;
+        args_g.strategy = STRATEGY[0];
+        pthread_create(&thr_g[i], NULL, operation, (void *)&args_g);
+        args_g.trd = thr_g[i];
+        pthread_join(thr_g[i], NULL);
     }
 
     cprinter(STRATEGY[0], "end");
-    clock_t end = clock();
-    double time_spent = ((double)(end - begin) / CLOCKS_PER_SEC) * 1000;
-    tprinter(persons, tries, time_spent);
+    clock_t end_g = clock();
+    double time_spent_g = ((double)(end_g - begin_g) / CLOCKS_PER_SEC) * 1000;
+    tprinter(persons, tries, time_spent_g);
 
     putchar('\n');
     fflush(stdout);
 
-    // Strategy #2 - Global Lock
+    // Strategy #2 - Coin Lock
+    pthread_t thr_c[persons];
+    initialize(STRATEGY[1]);
+    clock_t begin_c = clock();
+
+    for(int i=0; i<persons; i++)
+    {
+        struct thr_args args_c;
+        args_c.strategy = STRATEGY[1];
+        pthread_create(&thr_c[i], NULL, operation, (void *)&args_c);
+        args_c.trd = thr_c[i];
+    }
+
+    cprinter(STRATEGY[1], "end");
+    clock_t end_c = clock();
+    double time_spent_c = ((double)(end_c - begin_c) / CLOCKS_PER_SEC) * 1000;
+    tprinter(persons, tries, time_spent_c);
 
     return 0;
 }
